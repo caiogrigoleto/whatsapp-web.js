@@ -1,22 +1,156 @@
-const { Client, Location, List, Buttons, LocalAuth } = require('./index');
+const { Client, Location, List, Buttons, LocalAuth, MessageMedia } = require('./index');
+const qrcode = require('qrcode-terminal');
+const express = require('express');
+
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+
+const app = express();
+
+app.use(bodyParser.json());
+app.use(cors());
+
+const secretKey = '123456';
+
+app.post('/login', (req, res) => {
+    // Aqui, você faria a verificação do usuário e senha no banco de dados ou sistema de autenticação
+    // Vamos simular que o usuário e senha estão corretos para fins deste exemplo
+    const { username, password } = req.body;
+
+    if (username === 'usuario' && password === 'senha') {
+        // Dados do usuário autenticado (pode ser obtido do banco de dados)
+        const user = { id: 1, username: 'usuario' };
+
+        // Gerar um token Bearer usando a biblioteca 'jsonwebtoken'
+        jwt.sign({ user }, secretKey, { expiresIn: '1h' }, (err, token) => {
+            if (err) {
+                res.status(500).json({ error: 'Erro ao gerar token' });
+            } else {
+                // Responder com o token Bearer
+                res.json({ token });
+            }
+        });
+    } else {
+        res.status(401).json({ error: 'Credenciais inválidas' });
+    }
+});
+
+// Middleware para proteger as rotas que exigem autenticação
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Token não fornecido' });
+    }
+
+    // Verificar o token usando a biblioteca 'jsonwebtoken'
+    jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ error: 'Token inválido' });
+        }
+
+        // Se o token for válido, permitir o acesso à próxima rota
+        req.user = decoded.user;
+        next();
+    });
+}
+
+// Rota protegida que requer autenticação
+app.get('/api/protegida', authenticateToken, (req, res) => {
+    res.json({ message: 'Esta é uma rota protegida!', user: req.user });
+});
+
+// Porta em que a API irá escutar as requisições
+const PORT = process.env.PORT || 3000;
+
+// Iniciar o servidor da API
+app.listen(PORT, () => {
+    console.log(`Servidor da API iniciado na porta ${PORT}`);
+});
+
+app.get('/api/saudacao', (req, res) => {
+    res.json({ mensagem: 'Olá, bem-vindo à minha API!' });
+});
+
+app.post('/api/enviaMsg', authenticateToken, (req, res) => {
+    const number = req.body.number;
+    const message = req.body.message;
+
+    client.sendMessage(number + '@c.us', message).then(response => {
+        res.status(200).json({
+            status: true,
+            response: response
+        });
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        });
+    })
+});
+
+app.post('/api/getContact', authenticateToken, (req, res) => {
+    const number = req.body.number;
+
+    client.isRegisteredUser(number + '@c.us').then(contact => {
+        res.status(200).json({
+            status: true,
+            response: contact
+        });
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        });
+    });
+});
+
+app.post('/api/enviaUrlMedia', authenticateToken, async (req, res) => {
+    const number = req.body.number;
+    const caption = req.body.caption;
+    const url = req.body.url;
+    const type = req.body.type;
+
+    const media = await MessageMedia.fromUrl(url);    
+
+    client.sendMessage(number + '@c.us', media, {
+        caption: caption
+      }).then(response => {
+        res.status(200).json({
+            status: true,
+            response: response
+        });
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        });
+    });
+});
+
+
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     // proxyAuthentication: { username: 'username', password: 'password' },
-    puppeteer: { 
+    puppeteer: {
         // args: ['--proxy-server=proxy-server-that-requires-authentication.example.com'],
+        args: ['--no-sandbox'],
         headless: false
     }
 });
 
 client.initialize();
 
-client.on('loading_screen', (percent, message) => {
-    console.log('LOADING SCREEN', percent, message);
-});
+// client.on('loading_screen', (percent, message) => {
+//     console.log('LOADING SCREEN', percent, message);
+// });
 
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
+    qrcode.generate(qr, { small: true });
     console.log('QR RECEIVED', qr);
 });
 
@@ -200,7 +334,7 @@ client.on('message', async msg => {
         let list = new List('List body', 'btnText', sections, 'Title', 'footer');
         client.sendMessage(msg.from, list);
     } else if (msg.body === '!reaction') {
-        msg.react('👍');
+        msg.react('🙏');
     } else if (msg.body === '!edit') {
         if (msg.hasQuotedMsg) {
             const quotedMsg = await msg.getQuotedMessage();
