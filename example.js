@@ -5,13 +5,21 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const getAllUsers = require('./src/db/allusers');
+const insertUser = require('./src/db/insertuser');
+const insertChat = require('./src/db/insertChat');
+const { unLock, lock, verificaLogin, login } = require('./src/db/functions');
+
+const axios = require('axios');
+
+const apiUrl = 'http://voti-admin-env.eba-9qa2jj8n.us-east-1.elasticbeanstalk.com/';
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(cors());
 
-const secretKey = '123456';
+const secretKey = '';
 
 app.post('/login', (req, res) => {
     // Aqui, você faria a verificação do usuário e senha no banco de dados ou sistema de autenticação
@@ -113,14 +121,43 @@ app.post('/api/enviaUrlMedia', authenticateToken, async (req, res) => {
     const url = req.body.url;
     const type = req.body.type;
 
-    const media = await MessageMedia.fromUrl(url);    
+    const media = await MessageMedia.fromUrl(url);
 
     client.sendMessage(number + '@c.us', media, {
         caption: caption
-      }).then(response => {
+    }).then(response => {
         res.status(200).json({
             status: true,
             response: response
+        });
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        });
+    });
+});
+
+app.get('/api/users/getAll', authenticateToken, async (req, res) => {
+    await getAllUsers().then(query => {
+        res.status(200).json({
+            status: true,
+            response: query[0]
+        });
+    }).catch(err => {
+        res.status(500).json({
+            status: false,
+            response: err
+        });
+    });
+});
+
+app.post('/api/users/insert', authenticateToken, async (req, res) => {
+    await insertUser(req.body).then(query => {
+        console.log(req.body);
+        res.status(201).json({
+            status: true,
+            response: "Usuario cadastrado ID: " + query[0].insertId
         });
     }).catch(err => {
         res.status(500).json({
@@ -168,12 +205,185 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
-    console.log('MESSAGE RECEIVED', msg);
+    //console.log('MESSAGE RECEIVED', msg);
 
     if (msg.body === '!ping reply') {
         // Send a new message as a reply to the current one
         msg.reply('pong');
 
+    }
+    else if (msg.body.startsWith('!desbloquear ')) {
+        //comando que desbloqueia função quando digitada
+        let email = msg.body.slice(8);
+        const dados = {
+            contactId: msg.from
+        }
+        const isLogado = await verificaLogin(dados);
+
+        if (isLogado) {
+
+            const postData = {
+                username: '',
+                password: ''
+            };
+
+            const headers = {
+                'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+            };
+
+
+            await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
+                let token = response.data.token;
+
+                const putData = {
+                    idLoja: 1455,
+                    flgInadimplente: false,
+                    flgCancelado: false,
+                    flgBloqueado: false,
+                    flgBloqueadoPelaRevenda: false,
+                    flgModuloNfse: true,
+                    flgModuloVenda: true,
+                    flgModuloSATNFCeNFe: true,
+                    flgModuloFinanceiro: true,
+                    flgModuloCompra: true,
+                    flgModuloEstoque: true,
+                    flgModuloBoleto: true,
+                    flgModuloMdfe: true,
+                    flgModuloSped: true,
+                    flgModuloEcommerce: true,
+                    flgModuloMidiaIndoor: true,
+                    flgModuloDelivery: true,
+                    flgModuloMarketing: true,
+                    flgModuloContabilidade: true,
+                    flgModuloSalao: true,
+                    flgModuloClinica: true,
+                    flgModuloAgro: true,
+                    flgModuloRestaurante: true
+                }
+                const headers = {
+                    'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+                    'Authorization': 'Bearer ' + token
+                }
+
+                axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
+                    msg.reply("Cliente desbloqueado com sucesso!");
+                })
+            }).catch(err => {
+                msg.reply(err);
+            })
+        } else {
+            msg.reply("Você não está logado!");
+        }
+        // const data = {
+        //     email: email
+        // }
+
+        // await unLock(data).then(query => {
+        //     msg.reply("Funcionário desbloqueado com sucesso! \n");
+        // }).catch(err => {
+        //     msg.reply(err);
+        // });
+    }
+    else if (msg.body.startsWith('!bloquear')) {
+        //comando que bloqueia função quando digitada
+        let email = msg.body.slice(8);
+
+        const dados = {
+            contactId: msg.from
+        }
+        const isLogado = await verificaLogin(dados);
+
+        if (isLogado) {
+
+
+
+            const postData = {
+                username: '',
+                password: ''
+            };
+
+            const headers = {
+                'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+            };
+
+
+            await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
+                let token = response.data.token;
+
+                const putData = {
+                    idLoja: 1455,
+                    flgInadimplente: false,
+                    flgCancelado: false,
+                    flgBloqueado: true,
+                    flgBloqueadoPelaRevenda: true,
+                    flgModuloNfse: true,
+                    flgModuloVenda: true,
+                    flgModuloSATNFCeNFe: true,
+                    flgModuloFinanceiro: true,
+                    flgModuloCompra: true,
+                    flgModuloEstoque: true,
+                    flgModuloBoleto: true,
+                    flgModuloMdfe: true,
+                    flgModuloSped: true,
+                    flgModuloEcommerce: true,
+                    flgModuloMidiaIndoor: true,
+                    flgModuloDelivery: true,
+                    flgModuloMarketing: true,
+                    flgModuloContabilidade: true,
+                    flgModuloSalao: true,
+                    flgModuloClinica: true,
+                    flgModuloAgro: true,
+                    flgModuloRestaurante: true
+                }
+                const headers = {
+                    'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+                    'Authorization': 'Bearer ' + token
+                }
+
+                axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
+                    msg.reply("Cliente bloqueado com sucesso!");
+                })
+            }).catch(err => {
+                msg.reply(err);
+            })
+        } else {
+            msg.reply("Você não está logado!");
+        }
+        // const data = {
+        //     email: email
+        // }
+        // await lock(data).then(query => {
+        //     msg.reply("Funcionário bloqueado com sucesso!");
+        // }).catch(err => {
+        //     msg.reply(err);
+        // });
+
+
+    } else if (msg.body === '!getu') {
+        await getAllUsers().then(query => {
+            msg.reply("Lista de usuários: \n" + JSON.stringify(query[0]));
+        }).catch(err => {
+            msg.reply(err);
+        });
+
+    } else if (msg.body.startsWith('!grava ')) {
+        let mensagem = msg.body.slice(7)
+        let number = msg.from;
+        let timestamp = msg.timestamp;
+
+        timestamp = new Date(timestamp * 1000);
+
+        const chat = {
+            chatId: number,
+            msg: mensagem,
+            timestamp: timestamp
+        }
+
+        await insertChat(chat).then(query => {
+            msg.reply("Mensagem gravada com sucesso! ID Msg: " + query[0].insertId);
+        }).catch(err => {
+            msg.reply("Erro ao gravar mensagem: " + err);
+        })
     } else if (msg.body === '!ping') {
         // Send a new message to the same chat
         client.sendMessage(msg.from, 'pong');
@@ -356,6 +566,39 @@ client.on('message', async msg => {
     } else if (msg.body === '!removelabels') {
         const chat = await msg.getChat();
         await chat.changeLabels([]);
+    } else if (msg.body === 'Ola' || msg.body === 'ola' || msg.body === 'olá' || msg.body === 'Olá') {
+        msg.reply('Digite uma opção: \n1 - Admin \n2 - Suporte \n3 - Financeiro');
+    } else if (msg.body === '2') {
+        let contatc = await client.getContactById('5518996877552@c.us');
+        console.log(contatc);
+        client.sendMessage(msg.from, contatc);
+    } else if (msg.body === '3') {
+        let contatc = await client.getContactById('5518997365210@s.whatsapp.net');
+        console.log(contatc);
+        client.sendMessage(msg.from, contatc);
+    } else if (msg.body === '1') {
+        const dados = {
+            contactId: msg.from
+        }
+        const isLogado = await verificaLogin(dados);
+
+        if (isLogado) {
+            client.sendMessage(msg.from, 'Você está logado');
+        } else {
+            client.sendMessage(msg.from, 'Você não está logado \nPor favor digite *!login SEU EMAIL SUA SENHA* para efetuar o login!');
+        }
+    } else if (msg.body.startsWith('!login ')) {
+        let email = msg.body.split(' ')[1];
+        let senhaIndex = msg.body.indexOf(email) + email.length;
+        let senha = msg.body.slice(senhaIndex, msg.body.length);
+
+        login(email, senha).then(() => {
+            client.sendMessage(msg.from, 'Login efetuado com sucesso!');
+        })
+
+    } else {
+        client.sendMessage(msg.from, "Seja Bem-Vindo ao bot da *MENTORA SOLULÇÕES* \nPara iniciar digite Olá!");
+        console.log(msg.body);
     }
 });
 
