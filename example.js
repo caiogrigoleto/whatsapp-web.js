@@ -12,7 +12,9 @@ const { unLock, lock, verificaLogin, login } = require('./src/db/functions');
 
 const axios = require('axios');
 
-const apiUrl = 'http://voti-admin-env.eba-9qa2jj8n.us-east-1.elasticbeanstalk.com/';
+//const apiUrl = 'http://voti-admin-env.eba-9qa2jj8n.us-east-1.elasticbeanstalk.com/';
+
+const apiUrl = 'http://votiintegra-env-1.eba-cpn2chma.us-east-1.elasticbeanstalk.com';
 
 const app = express();
 
@@ -214,9 +216,11 @@ client.on('message', async msg => {
     }
     else if (msg.body.startsWith('!desbloquear ')) {
         //comando que desbloqueia função quando digitada
-        let email = msg.body.slice(8);
+        let email = msg.body.slice(13);
+        let whatsapp = msg.from.slice(2, 13);
+
         const dados = {
-            contactId: msg.from
+            whatsapp: whatsapp
         }
         const isLogado = await verificaLogin(dados);
 
@@ -231,43 +235,51 @@ client.on('message', async msg => {
                 'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
             };
 
+            // await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
+            //     let token = response.data.token;
 
-            await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
-                let token = response.data.token;
+                // const putData = {
+                //     idLoja: 1455,
+                //     flgInadimplente: false,
+                //     flgCancelado: false,
+                //     flgBloqueado: false,
+                //     flgBloqueadoPelaRevenda: false,
+                //     flgModuloNfse: true,
+                //     flgModuloVenda: true,
+                //     flgModuloSATNFCeNFe: true,
+                //     flgModuloFinanceiro: true,
+                //     flgModuloCompra: true,
+                //     flgModuloEstoque: true,
+                //     flgModuloBoleto: true,
+                //     flgModuloMdfe: true,
+                //     flgModuloSped: true,
+                //     flgModuloEcommerce: true,
+                //     flgModuloMidiaIndoor: true,
+                //     flgModuloDelivery: true,
+                //     flgModuloMarketing: true,
+                //     flgModuloContabilidade: true,
+                //     flgModuloSalao: true,
+                //     flgModuloClinica: true,
+                //     flgModuloAgro: true,
+                //     flgModuloRestaurante: true
+                // }
+                // const headers = {
+                //     'Content-Type': 'application/json',// Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+                //     'Authorization': 'Bearer ' + token
+                // }
 
-                const putData = {
-                    idLoja: 1455,
-                    flgInadimplente: false,
-                    flgCancelado: false,
-                    flgBloqueado: false,
-                    flgBloqueadoPelaRevenda: false,
-                    flgModuloNfse: true,
-                    flgModuloVenda: true,
-                    flgModuloSATNFCeNFe: true,
-                    flgModuloFinanceiro: true,
-                    flgModuloCompra: true,
-                    flgModuloEstoque: true,
-                    flgModuloBoleto: true,
-                    flgModuloMdfe: true,
-                    flgModuloSped: true,
-                    flgModuloEcommerce: true,
-                    flgModuloMidiaIndoor: true,
-                    flgModuloDelivery: true,
-                    flgModuloMarketing: true,
-                    flgModuloContabilidade: true,
-                    flgModuloSalao: true,
-                    flgModuloClinica: true,
-                    flgModuloAgro: true,
-                    flgModuloRestaurante: true
-                }
-                const headers = {
-                    'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
-                    'Authorization': 'Bearer ' + token
-                }
+                // axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
+                //     msg.reply("Cliente desbloqueado com sucesso!");
+                // })
+            // }).catch(err => {
+            //     msg.reply(err);
+            // })
 
-                axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
-                    msg.reply("Cliente desbloqueado com sucesso!");
-                })
+            const putData = {
+                desEmail: email
+            }
+            axios.put(apiUrl + '/v1/desbloquear-cliente', putData, { headers }).then(response => {
+                msg.reply("Cliente desbloqueado com sucesso!");
             }).catch(err => {
                 msg.reply(err);
             })
@@ -284,18 +296,18 @@ client.on('message', async msg => {
         //     msg.reply(err);
         // });
     }
-    else if (msg.body.startsWith('!bloquear')) {
+    else if (msg.body.startsWith('!bloquear ')) {
         //comando que bloqueia função quando digitada
-        let email = msg.body.slice(8);
+        let email = msg.body.slice(10);
+
+        let whatsapp = msg.from.slice(2, 13);
 
         const dados = {
-            contactId: msg.from
+            whatsapp: whatsapp
         }
         const isLogado = await verificaLogin(dados);
 
         if (isLogado) {
-
-
 
             const postData = {
                 username: '',
@@ -307,42 +319,54 @@ client.on('message', async msg => {
             };
 
 
-            await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
-                let token = response.data.token;
+            // await axios.post(apiUrl + 'auth/signin', postData, { headers }).then(response => {
+            //     let token = response.data.token;
 
-                const putData = {
-                    idLoja: 1455,
-                    flgInadimplente: false,
-                    flgCancelado: false,
-                    flgBloqueado: true,
-                    flgBloqueadoPelaRevenda: true,
-                    flgModuloNfse: true,
-                    flgModuloVenda: true,
-                    flgModuloSATNFCeNFe: true,
-                    flgModuloFinanceiro: true,
-                    flgModuloCompra: true,
-                    flgModuloEstoque: true,
-                    flgModuloBoleto: true,
-                    flgModuloMdfe: true,
-                    flgModuloSped: true,
-                    flgModuloEcommerce: true,
-                    flgModuloMidiaIndoor: true,
-                    flgModuloDelivery: true,
-                    flgModuloMarketing: true,
-                    flgModuloContabilidade: true,
-                    flgModuloSalao: true,
-                    flgModuloClinica: true,
-                    flgModuloAgro: true,
-                    flgModuloRestaurante: true
-                }
-                const headers = {
-                    'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
-                    'Authorization': 'Bearer ' + token
-                }
+            //     const putData = {
+            //         idLoja: 1455,
+            //         flgInadimplente: false,
+            //         flgCancelado: false,
+            //         flgBloqueado: true,
+            //         flgBloqueadoPelaRevenda: true,
+            //         flgModuloNfse: true,
+            //         flgModuloVenda: true,
+            //         flgModuloSATNFCeNFe: true,
+            //         flgModuloFinanceiro: true,
+            //         flgModuloCompra: true,
+            //         flgModuloEstoque: true,
+            //         flgModuloBoleto: true,
+            //         flgModuloMdfe: true,
+            //         flgModuloSped: true,
+            //         flgModuloEcommerce: true,
+            //         flgModuloMidiaIndoor: true,
+            //         flgModuloDelivery: true,
+            //         flgModuloMarketing: true,
+            //         flgModuloContabilidade: true,
+            //         flgModuloSalao: true,
+            //         flgModuloClinica: true,
+            //         flgModuloAgro: true,
+            //         flgModuloRestaurante: true
+            //     }
+            //     const headers = {
+            //         'Content-Type': 'application/json', // Especifica o tipo de conteúdo do corpo da requisição (JSON neste caso)
+            //         'Authorization': 'Bearer ' + token
+            //     }
 
-                axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
-                    msg.reply("Cliente bloqueado com sucesso!");
-                })
+            //     axios.put(apiUrl + 'api/v1/auth/cliente', putData, { headers }).then(response => {
+            //         msg.reply("Cliente bloqueado com sucesso!");
+            //     }).catch(err => {
+            //         msg.reply(err);
+            //     })
+            // }).catch(err => {
+            //     msg.reply(err);
+            // })
+
+            const putData = {
+                desEmail: email
+            }
+            
+            axios.put(apiUrl + '/v1/bloquear-cliente', putData, { headers }).then(response => {
+                msg.reply("Cliente bloqueado com sucesso!");
             }).catch(err => {
                 msg.reply(err);
             })
@@ -577,8 +601,11 @@ client.on('message', async msg => {
         console.log(contatc);
         client.sendMessage(msg.from, contatc);
     } else if (msg.body === '1') {
+
+        let whatsapp = msg.from.slice(2, 13);
+
         const dados = {
-            contactId: msg.from
+            whatsapp: whatsapp
         }
         const isLogado = await verificaLogin(dados);
 
@@ -592,9 +619,19 @@ client.on('message', async msg => {
         let senhaIndex = msg.body.indexOf(email) + email.length;
         let senha = msg.body.slice(senhaIndex, msg.body.length);
 
-        login(email, senha).then(() => {
+        const isLogou = await login(email, senha);
+
+        if (isLogou) {
             client.sendMessage(msg.from, 'Login efetuado com sucesso!');
-        })
+        }else{
+            client.sendMessage(msg.from, 'Erro no login');
+        }
+
+        // login(email, senha).then(response => {
+        //     client.sendMessage(msg.from, 'Login efetuado com sucesso!');
+        // }).catch((err) => {
+        //     client.sendMessage(msg.from, 'Erro no login: ' + err);
+        // })
 
     } else {
         client.sendMessage(msg.from, "Seja Bem-Vindo ao bot da *MENTORA SOLULÇÕES* \nPara iniciar digite Olá!");

@@ -13,11 +13,14 @@ const lock = async (email) => {
 
 const verificaLogin = async (contactId) => {
   let now = new Date();
-  const result = await connection.query('SELECT * FROM usuarios WHERE ?', contactId);
+  const result = await connection.query('SELECT * FROM users WHERE ?', contactId);
   // let dif = (now - result[0][0].ultimoAcesso);
 
   // console.log(dif);
-  if ((now - result[0][0].ultimoAcesso) > 60000) {
+  // console.log(result);
+  // 300000 - 5 mins
+  // 60000 - 1 min
+  if ((now - result[0][0].ultimoAcesso) > 300000) {
     return false;
   } else {
     return true;
@@ -26,10 +29,14 @@ const verificaLogin = async (contactId) => {
 
 const login = async (user, pass) => {
   console.log(user, pass);
-  const result = await connection.query('SELECT * FROM usuarios WHERE email = ? AND senha = ?', [user, pass]);
-  if(result.length > 0) {
-    await connection.query('UPDATE usuarios SET ultimoAcesso = ? WHERE email = ?', [new Date(), user]);
-    return result[0];
+  const result = await connection.query('SELECT * FROM users WHERE email = ? AND senha = ?', [user.trim(), pass.trim()]);
+  console.log(result);
+  console.log(result[0].length);
+  if(result[0].length > 0) {
+    await connection.query('UPDATE users SET ultimoAcesso = ? WHERE email = ?', [new Date(), user]);
+    return true;
+  }else{
+    return false;
   }
 }
 
